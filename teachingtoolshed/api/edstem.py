@@ -77,11 +77,5 @@ class EdStem:
 
     def get_quiz_results(self, quiz_id):
         quiz_path = urljoin(EdStem.API, "lessons/slides", quiz_id, "questions/results")
-        result = self._ed_post_request(
-            quiz_path,
-            {
-                "students": 1,
-                "noAttempt": 1,
-            },
-        )
+        result = self._ed_post_request(quiz_path, {"students": 1, "noAttempt": 1,},)
         return result
