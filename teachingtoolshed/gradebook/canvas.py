@@ -1,14 +1,31 @@
-import pandas as pd
 import datetime
+
+import pandas as pd
+from teachingtoolshed.gradebook.csv_readers import CSVReader
 
 
 class Canvas:
     def __init__(
-        self, filename, student_name="Student", sid="SIS Login ID", dummy_rows=2
+        self,
+        filename: str,
+        student_name_col: str = "Student",
+        sid_col: str = "SIS Login ID",
+        dummy_rows: int = 2,
     ):
+        """Class that manages state and changes to a Canvas Gradebook export.
+
+        Args:
+            filename: A filename to a Canvas Gradebook export to use as the starting grades.
+            student_name_col: Column name in Gradebook that contains the student name
+            sid: Column name in Gradebook that contains students UW Net ID (or whatever you will
+              use to identify students)
+            dummy_rows: Optional; The number of rows to skip in the Gradebook before the column
+              header rows. These rows will be preserved in the output but need to parsed separately
+              from the students and regular column headers.
+        """
         self.filename = filename
-        self.student_name = student_name
-        self.sid = sid
+        self.student_name_col = student_name_col
+        self.sid_col = sid_col
         self.dummy_rows = dummy_rows
 
         # Useful to know which assignments we changed for reporting differences
@@ -16,39 +33,69 @@ class Canvas:
 
         # Read in data
         df = pd.read_csv(filename)
-        df = df[self.dummy_rows :]
+        self.original_canvas = df[self.dummy_rows :]
         self.dummies = df[: self.dummy_rows]
-        self.canvas = df.set_index(self.sid)
+        self.canvas = df.set_index(self.sid_col)
 
-    def _find_column(self, col, grab_first=False):
-        if col in self.canvas:
-            return col
+    def _find_column(self, col_name_prefix: str, grab_first: bool = False):
+        """Given the prefix of a column name, returns a full column name that matches this prefix.
+
+        Useful for specifying a short prefix of a name rather than the whole Canvas Column
+        (which contains an arbitrary identifier). If the prefix does not uniquely identify one
+        column, will raise an error (unless grab_first is True, in which case it returns the first)
+
+        Args:
+            col_name_prefix: The prefix of a column name
+            grade_first: Determines behavior in the case where more than one column has
+              col_name_prefix. If True, returns the first. If False, raises an ValueError.
+        """
+        if col_name_prefix in self.canvas:
+            return col_name_prefix
         else:
             columns = self.canvas.columns
-            columns = columns[columns.str.startswith(col)]
+            columns = columns[columns.str.startswith(col_name_prefix)]
             if len(columns) == 1 or (grab_first and len(columns) > 1):
                 return columns[0]
             else:
                 raise ValueError(
-                    f"canvas_col ({col}) does not uniquely identify one column"
+                    f"canvas_col ({col_name_prefix}) does not uniquely identify one column"
                 )
 
-    def add_grades(self, canvas_col, csv_reader, grab_first=False):
-        canvas_col = self._find_column(canvas_col, grab_first=grab_first)
+    def add_grades(
+        self, canvas_col_name: str, csv_reader: CSVReader, grab_first: bool = False
+    ):
+        """ Adds the scores from csv_reader to the Gradebook column canvas_col_name.
 
-        self.changes.append(canvas_col)
+        The CSVReader and its subclasses read in student grades from other sources and
+        are indexed by some unique student identifier (e.g., UW NetID). Note the values
+        in the csv_reader's identifiers must match the sid values in this class.
+
+        Args:
+            canvas_col_name: The prefix or full name of a column in the Canvas Gradebook
+            csv_reader: A CSVReader containing scores from another source
+            grade_first: Determines behavior in the case where more than one column has
+              col_name_prefix. If True, returns the first. If False, raises an ValueError.
+        """
+        canvas_col_name = self._find_column(canvas_col_name, grab_first=grab_first)
+
+        self.changes.append(canvas_col_name)
 
         # Join together to get scores for this column
-        self.canvas[canvas_col] = self.canvas.join(csv_reader.scores, how="left")[
+        self.canvas[canvas_col_name] = self.canvas.join(csv_reader.scores, how="left")[
             csv_reader.score_col
         ]
 
         # Give everyone else a 0
-        self.canvas[canvas_col].fillna(0, inplace=True)
+        self.canvas[canvas_col_name].fillna(0, inplace=True)
 
     def report_diffs(self):
+        """Utility method to report differences for assignments added"""
+
         df_merged = self.original_canvas.merge(
-            self.canvas, left_on=self.sid, right_on=self.sid, suffixes=("_old", "_new")
+            self.canvas,
+            left_on=self.sid_col,
+            right_on=self.sid_col,
+            suffixes=("_old", "_new"),
         )
 
         # Find rows that changed
@@ -67,13 +114,19 @@ class Canvas:
         else:
             print(f"Found {diffs.sum()} differences")
             cols = (
-                [self.student_name + "_old", self.sid]
+                [self.student_name_col + "_old", self.sid_col]
                 + [col + "_old" for col in self.changes]
                 + [col + "_new" for col in self.changes]
             )
             return df_merged[diffs][cols].copy()
 
-    def export(self, filename=None):
+    def export(self, filename: str = None):
+        """Saves the current Gradebook to a new filename
+
+        Args:
+            filename: Optional; File name to save to. If None,
+              generates a timestamped filename.
+        """
         if filename is None:
             filename = Canvas.export_filename()
 
@@ -84,6 +137,7 @@ class Canvas:
 
     @staticmethod
     def export_filename():
+        """Returns a timestamped filename for exporting"""
         now = datetime.datetime.now()
         date_format = "%Y-%b-%d-at-%H-%M"
         return f"Canvas-Export-{now.strftime(date_format)}.csv"

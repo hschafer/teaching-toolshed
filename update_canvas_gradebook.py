@@ -1,3 +1,6 @@
+"""Script for adding scores from other tools to a Canvas Gradebook.
+
+"""
 from teachingtoolshed.gradebook.canvas import Canvas
 from teachingtoolshed.gradebook.csv_readers import (
     CSVReader,
@@ -13,20 +16,31 @@ def main():
     # Read Canvas CSV Export
     canvas = Canvas("CanvasGradebook.csv")
 
-    # hw7 = Ed('HW7 - k-means with Text Data results latest-with-feedback.csv',
-    #         sid_col='email', score_col='feedback grade', sid_is_email=True,
-    #         rename_index=renames)
-    # canvas.add_grades('HW7 - Coding', hw7, grab_first=True)
+    hw7 = EdStemReader(
+        "HW7 - k-means with Text Data results latest-with-feedback.csv",
+        sid_col="email",
+        score_col="feedback grade",
+        sid_is_email=True,
+        rename_index=renames,
+    )
+    canvas.add_grades("HW7 - Coding", hw7, grab_first=True)
 
-    # hw8 = Ed('HW8 - Recommendation with Text Data results latest-with-feedback.csv',
-    #         sid_col='email', score_col='feedback grade', sid_is_email=True,
-    #         rename_index=renames)
-    # canvas.add_grades('HW8 - Coding', hw8, grab_first=True)
+    hw8 = EdStemReader(
+        "HW8 - Recommendation with Text Data results latest-with-feedback.csv",
+        sid_col="email",
+        score_col="feedback grade",
+        sid_is_email=True,
+        rename_index=renames,
+    )
+    canvas.add_grades("HW8 - Coding", hw8, grab_first=True)
 
     lessons = CSVReader(
         "lessons.csv", sid_col="email", score_col="total", sid_is_email=True
     )
     canvas.add_grades("Checkpoint Completion", lessons)
+
+    # Look at differences
+    canvas.report_diffs()
 
     # Save grades
     canvas.export()
