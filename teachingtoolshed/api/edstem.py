@@ -14,14 +14,18 @@ class EdStem:
 
     # General functions for GET/POST
     def _ed_get_request(self, path, query_params={}):
-        return requests.get(
+        response = requests.get(
             path, params=query_params, headers={"x-token": self._token}
-        ).json()
+        )
+        response.raise_for_status()
+        return response.json()
 
     def _ed_post_request(self, path, query_params={}):
-        return requests.post(
+        response = requests.post(
             path, params=query_params, data={"_token": self._token}
-        ).content
+        )
+        response.raise_for_status()
+        return response.content
 
     # Get lesson info
     def get_all_lessons(self):
