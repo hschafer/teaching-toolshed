@@ -3,9 +3,10 @@ import os
 import pathlib
 import re
 import unicodedata
+
 import yaml
 
-from teachingtoolshed.api.edstem import EdStem
+from teachingtoolshed.api.edstem import EdStemAPI
 
 # Logger config
 
@@ -20,7 +21,6 @@ with open(os.path.expanduser("~/.secrets/ed_token")) as f:
     TOKEN = f.read().strip()
 
 OUTPUT_DIR = "data/"
-CLEAR_CACHE = True
 
 
 # Define helper functions
@@ -106,7 +106,7 @@ def save_lesson(ed, lesson_data, lesson_metadata):
 
 
 def main():
-    ed = EdStem(COURSE_ID, TOKEN)
+    ed = EdStemAPI(COURSE_ID, TOKEN)
 
     metadata = []
     for lesson in ed.get_all_lessons():
