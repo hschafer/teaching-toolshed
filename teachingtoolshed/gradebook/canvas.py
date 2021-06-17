@@ -37,7 +37,7 @@ class Canvas:
         self.dummies = df[: self.dummy_rows]
         self.canvas = self.original_canvas.set_index(self.sid_col)
 
-    def _find_column(self, col_name_prefix: str, grab_first: bool = False):
+    def _find_column(self, col_name_prefix: str, grab_first: bool = False) -> str:
         """Given the prefix of a column name, returns a full column name that matches this prefix.
 
         Useful for specifying a short prefix of a name rather than the whole Canvas Column
@@ -136,7 +136,7 @@ class Canvas:
         df.to_csv(filename, index=False)
 
     @staticmethod
-    def export_filename():
+    def export_filename() -> str:
         """Returns a timestamped filename for exporting"""
         now = datetime.datetime.now()
         date_format = "%Y-%b-%d-at-%H-%M"
