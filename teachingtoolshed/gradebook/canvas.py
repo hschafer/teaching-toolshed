@@ -35,7 +35,7 @@ class Canvas:
         df = pd.read_csv(filename)
         self.original_canvas = df[self.dummy_rows :]
         self.dummies = df[: self.dummy_rows]
-        self.canvas = df.set_index(self.sid_col)
+        self.canvas = self.original_canvas.set_index(self.sid_col)
 
     def _find_column(self, col_name_prefix: str, grab_first: bool = False):
         """Given the prefix of a column name, returns a full column name that matches this prefix.
