@@ -130,3 +130,7 @@ dmypy.json
 
 # VSCode
 .vscode
+
+# Data related to students
+data/
+out/
