@@ -65,7 +65,7 @@ def compute_single_lesson_score(
     lesson_metadata: Dict[str, Any],
     df: pd.DataFrame,
     slide_columns: List[str],
-    due_date: datetime,
+    due_date: datetime.datetime,
 ) -> pd.Series:
     """Takes a DataFrame from an Ed export of completions and a str representing the due date
     and returns a Series (indexed by email) of the students' scores for this assignment.

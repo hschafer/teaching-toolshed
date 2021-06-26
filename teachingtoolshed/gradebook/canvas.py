@@ -1,4 +1,5 @@
 import datetime
+from typing import List
 
 import pandas as pd
 from teachingtoolshed.gradebook.csv_readers import CSVReader
@@ -23,19 +24,19 @@ class Canvas:
               header rows. These rows will be preserved in the output but need to parsed separately
               from the students and regular column headers.
         """
-        self.filename = filename
-        self.student_name_col = student_name_col
-        self.sid_col = sid_col
-        self.dummy_rows = dummy_rows
+        self.filename: str = filename
+        self.student_name_col: str = student_name_col
+        self.sid_col: str = sid_col
+        self.dummy_rows: int = dummy_rows
 
         # Useful to know which assignments we changed for reporting differences
-        self.changes = []
+        self.changes: List[str] = []
 
         # Read in data
         df = pd.read_csv(filename)
-        self.original_canvas = df[self.dummy_rows :]
-        self.dummies = df[: self.dummy_rows]
-        self.canvas = self.original_canvas.set_index(self.sid_col)
+        self.original_canvas: pd.DataFrame = df[self.dummy_rows :]
+        self.dummies: pd.DataFrame = df[: self.dummy_rows]
+        self.canvas: pd.DataFrame = self.original_canvas.set_index(self.sid_col)
 
     def _find_column(self, col_name_prefix: str, grab_first: bool = False) -> str:
         """Given the prefix of a column name, returns a full column name that matches this prefix.
@@ -53,9 +54,11 @@ class Canvas:
             return col_name_prefix
         else:
             columns = self.canvas.columns
-            columns = columns[columns.str.startswith(col_name_prefix)]
-            if len(columns) == 1 or (grab_first and len(columns) > 1):
-                return columns[0]
+            potential_columns = columns[columns.str.startswith(col_name_prefix)]
+            if len(potential_columns) == 1 or (
+                grab_first and len(potential_columns) > 1
+            ):
+                return potential_columns[0]
             else:
                 raise ValueError(
                     f"canvas_col ({col_name_prefix}) does not uniquely identify one column"

@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Callable, Dict, Hashable, Mapping, Optional, Union
 
 import pandas as pd
 
@@ -28,17 +28,17 @@ class CSVReader:
               email address (i.e., '@uw.edu')
             dummy_rows: Optional; Number of rows to skip in the CSV at the beginning
         """
-        self.filename = filename
-        self.dummy_rows = dummy_rows
-        self.score_col = score_col
-        self.sid_col = sid_col  # Might modify after reading in data
+        self.filename: str = filename
+        self.dummy_rows: int = dummy_rows
+        self.score_col: str = score_col
+        self.sid_col: str = sid_col  # Might modify after reading in data
 
         # Read in data
-        self.scores = pd.read_csv(filename, skiprows=self.dummy_rows)
+        self.scores: pd.DataFrame = pd.read_csv(filename, skiprows=self.dummy_rows)
 
         # Change sid_col to store just UW Net IDs if they are emails
         if sid_is_email:
-            self.scores[self.sid_col] = self.scores[self.sid_col].str.split("@").str[0]
+            self.scores[self.sid_col] = self.scores[self.sid_col].str.split("@")[0]
 
         # Make the data frame indexed by net id
         self.scores = self.scores.set_index(self.sid_col)
@@ -86,4 +86,4 @@ class EdStemReader(CSVReader):
             sid_is_email=sid_is_email,
             dummy_rows=dummy_rows,
         )
-        self.scores = self.scores.rename(index=rename_index)
+        self.scores = self.scores.rename(index=rename_index)  # type: ignore

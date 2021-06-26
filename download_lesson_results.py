@@ -16,6 +16,7 @@ import os
 import pathlib
 import re
 import unicodedata
+from typing import Any, Dict, Optional
 
 import pandas as pd
 import yaml
@@ -40,7 +41,7 @@ OUTPUT_DIR = "data/lessons"
 # Download logic
 
 
-def slugify(value, allow_unicode=False):
+def slugify(value: str, allow_unicode: bool = False) -> str:
     """Taken from https://github.com/django/django/blob/master/django/utils/text.py
     Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
     dashes to single dashes. Remove characters that aren't alphanumerics,
@@ -60,15 +61,16 @@ def slugify(value, allow_unicode=False):
     return re.sub(r"[-\s]+", "-", value).strip("-_")
 
 
-def save_file(file_name, content):
+def save_file(file_name: str, content: bytes):
     """Saves the given binary content to the given file_name"""
     with open(file_name, "wb") as fd:
         fd.write(content)
 
 
-def convert_timestamp_to_pst(due_date_str):
-    """Takes a str for a datetime and converts it to a
-    timezone aware datetime
+def convert_timestamp_to_pst(due_date_str: str) -> Optional[str]:
+    """Takes a str for a datetime and converts it to a timezone aware datetime.
+
+    Returns None if given an empty string.
     """
     if due_date_str:
         dt = pd.to_datetime(pd.Series([f"{due_date_str}"]))
@@ -82,19 +84,20 @@ def convert_timestamp_to_pst(due_date_str):
         return None
 
 
-def get_lesson_metadata(lesson_data):
+def get_lesson_metadata(lesson_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """For the given lesson API result, returns metadata about the lesson
     as a dictionary.
 
     Returns None if this is not a Lesson we should download (e.g., a section)
     """
-    # All of my lessons for lecture start with this prefix
-    if "📚 Lecture" not in lesson_data["title"]:
+    # Extrace lecture number from title
+    title_match = re.match(r"📚 Lecture (\d+)", lesson_data["title"])
+
+    # If doesn't match this pattern, not a lecture
+    if title_match is None:
         return None
 
-    # Extrace lecture number from title
-    lecture_num = re.match(r"📚 Lecture (\d+)", lesson_data["title"]).group(1)
-    lecture_num = int(lecture_num)
+    lecture_num = int(title_match.group(1))
 
     # To avoid slashes in titles
     title = slugify(lesson_data["title"])
@@ -112,7 +115,9 @@ def get_lesson_metadata(lesson_data):
     return lesson_metadata
 
 
-def save_lesson(ed, lesson_data, lesson_metadata):
+def save_lesson(
+    ed: EdStemAPI, lesson_data: Dict[str, Any], lesson_metadata: Dict[str, Any]
+):
     """For the given lesson_data (from EdStem) and lesson_metadata
     (computed by us), save a folder with the completions and results
     for this lesson.
