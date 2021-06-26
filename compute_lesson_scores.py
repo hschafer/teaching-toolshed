@@ -1,17 +1,26 @@
+"""Script to compute a lessons gradebook for lesson completions.
+
+Could also be useful to run multiple times with different sources (e.g., daily
+lessons and weekly checkpoints). Saves a gradebook for the lessons in OUTPUT_DIR.
+
+I tried my best to document specific syllabus choices that impact my grading (e.g., late
+lessons and dropping lowest).
+
+Must be run after downloading lessons (usually with download_lesson_results.py)
+"""
 import datetime
-import json
 import logging
 import os
 import pathlib
-import random
-import re
+from typing import Any, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import yaml
-from pytz import timezone
+
+from teachingtoolshed.gradebook.csv_readers import EdStemReader
 
 sns.set()
 
@@ -22,143 +31,154 @@ logger = logging.getLogger("compute_lesson_scores")
 # Constants
 DATA_DIR = "data/lessons"
 OUTPUT_DIR = "out/lesson_scores/"
-STUDENT_INFO_COLUMNS = ["name", "email", "tutorial", "SIS ID"]
-IGNORE_COLUMNS = STUDENT_INFO_COLUMNS + ["first viewed", "total score"]
+IGNORE_COLUMNS = ["name", "email", "tutorial", "SIS ID", "first viewed", "total score"]
 DROP_LOWEST = 3
 
 
-def read_completions(lesson_name):
+def read_completions(lesson_name: str) -> Tuple[pd.DataFrame, List[str]]:
+    """Reads a completions.csv for the given lesson identifier.
+
+    Returns a tuple of length two:
+      - A DataFrame (indexed by email) storing completions data
+      - A List of column names for the slides containing slide completions
+    """
+    # TODO I feel like this could potentially use an abstraction like a CSV reader
+
     path = os.path.join(DATA_DIR, lesson_name, "completions.csv")
 
     # Read in data
     df = pd.read_csv(path, skiprows=2)
 
     # Get slide columns
-    slide_columns = df.columns[~df.columns.isin(IGNORE_COLUMNS)]
+    slide_columns = list(df.columns[~df.columns.isin(IGNORE_COLUMNS)])
 
     # Kind of a hack, but we read the data in again to parse dates correctly
     df = pd.read_csv(
-        path, skiprows=2, parse_dates=list(slide_columns), infer_datetime_format=True
+        path, skiprows=2, parse_dates=slide_columns, infer_datetime_format=True
     )
     df = df.set_index("email")
 
     return df, slide_columns
 
 
-def parse_due_date(due_date_str):
+def compute_single_lesson_score(
+    lesson_metadata: Dict[str, Any],
+    df: pd.DataFrame,
+    slide_columns: List[str],
+    due_date: datetime,
+) -> pd.Series:
+    """Takes a DataFrame from an Ed export of completions and a str representing the due date
+    and returns a Series (indexed by email) of the students' scores for this assignment.
     """
-    Takes a str for a datetime and converts it to a
-    timezone aware datetime
-    """
-    # dt = pd.Series([f"{due_date_str}"])
-    # dt = pd.to_datetime(dt)
-    # return dt.iloc[0]
-    return pd.to_datetime(due_date_str)
+    # Compute a binary 1/0 value for each completion if it is on time.
+    # Allows a 15 minute buffer and half credit for anything up to a week late
+    due_date_buffered = due_date + datetime.timedelta(minutes=15)
+    late_date_buffered = due_date_buffered + datetime.timedelta(days=7)
+    before_due_date = df[slide_columns] < due_date_buffered
+    before_late_cutoff = df[slide_columns] < late_date_buffered
 
-
-def find_practice_column(df, name):
-    """
-    Given
-    """
-    columns = df.columns
-    columns = columns[columns.str.contains("🚧") & columns.str.contains(name)]
-    assert len(
-        columns == 1
-    ), f"Expected 1 column, found {len(columns)}: {columns}\nSearching for {name} in {df.columns}"
-    return columns[0]
-
-
-def compute_ed_scores(lesson, df, slide_columns, due_date, compute_score):
-    """
-    Takes a DataFrame from an Ed export of completions and a str representing the due date
-    and returns a Series (indexed by email) of the students' scores for this assignment
-    """
-
-    # Compute the score for this reading
-    buffer_date = due_date + datetime.timedelta(minutes=15)
-    print(buffer_date, type(buffer_date))
-    print(df[slide_columns])
-    print(df[slide_columns].dtypes)
-    before_due_date = ~(df[slide_columns] > buffer_date)
-    before_late_cutoff = ~(
-        df[slide_columns] > (buffer_date + datetime.timedelta(days=7))
-    )
-
+    # This formula gives 1 for on time, 0.5 for less than week late, and 0 for more than week late
     all_on_time = 0.5 * before_due_date + 0.5 * before_late_cutoff
 
-    # All or nothing
-    if compute_score == "all_or_nothing":
-        all_on_time = np.floor(before_due_date.sum(axis=1) / len(slide_columns))
-        all_correct = (df["total score"] == df["total score"].max()).astype(int)
-        return all_on_time * all_correct
+    # Only count scores of slides students had to do work on (e.g., code and quiz)
+    scores = pd.Series(0, index=df.index)
+    points_total = 0
+    for type in ["quiz", "code"]:
+        for slide in lesson_metadata[type]:
+            logging.info(f"Processing {slide['name']}")
 
-    elif compute_score == "partial_credit_by_score":
-        lesson_path = os.path.join(DATA_DIR, lesson["title"])
+            # Read in results. Note we want to keep the sid's as emails for simplicity
+            results_file = os.path.join(
+                DATA_DIR, lesson_metadata["title"], f"{slide['file']}.csv"
+            )
+            results = EdStemReader(
+                results_file, "email", "total score", sid_is_email=False
+            )
+            slide_scores = results.scores[results.score_col]
 
-        # Quizzes
-        quiz_scores = pd.Series(0, index=df.index)
-        for quiz in lesson["quiz"]:
-            logging.info(quiz)
-            quiz_file = os.path.join(lesson_path, f"{quiz['file']}.csv")
-            scores_df = pd.read_csv(quiz_file).set_index("email")
+            # Get points total (assume one student got max score)
+            slide_out_of = slide_scores.max()
 
-            quiz_on_time = all_on_time[
-                find_practice_column(before_due_date, quiz["name"])
-            ]
-            max_score = scores_df["total score"].max()
+            # Get if this slide was on time for each student
+            slide_on_time = all_on_time[slide["name"]]
 
-            quiz_scores += (scores_df["total score"] * quiz_on_time) / max_score
+            # Add to cumulative sum
+            scores += slide_scores * slide_on_time
+            points_total += slide_out_of
 
-        return quiz_scores / len(lesson["quiz"])
+    return scores / points_total
 
 
-def collect_completions(gradebook, column_prefix, metadata, compute_score):
+def collect_all_lesson_completions(
+    gradebook: pd.DataFrame, column_prefix: str, metadata: List[Dict[str, Any]]
+) -> Tuple[pd.DataFrame, List[str]]:
+    """Given a gradebook (DataFrame) and a list of lesson metadata, computes a score
+    for each lesson and stores that in the gradebook. Saves each lesson score individually
+    in a column with the format "{column_prefix}{lesson_num}" (e.g. L1, L2, L3, ...).
 
+    Returns a tuple:
+      - The gradebook with the lesson scores
+      - A list of column names for the lessons
+    """
     # For each lecture, add to the score
+    lesson_column_names = []
+
     for lesson in metadata:
         logging.info(f"Computing scores for {lesson['title']}")
 
         # Get due date
-        due_date = parse_due_date(lesson["due_date"])
+        due_date = pd.to_datetime(lesson["due_date"])
 
         # Read in data
         df, slide_columns = read_completions(lesson["title"])
 
-        # Find columns with completions
-
+        # Compute score for this lesson and save in gradebook
         target_col_name = f"{column_prefix}{lesson['num']}"
-        gradebook[target_col_name] = compute_ed_scores(
-            lesson, df, slide_columns, due_date, compute_score=compute_score,
+        gradebook[target_col_name] = compute_single_lesson_score(
+            lesson, df, slide_columns, due_date
         )
+        lesson_column_names.append(target_col_name)
+
+    return gradebook, lesson_column_names
+
+
+def compute_total_score(
+    gradebook: pd.DataFrame,
+    lesson_column_names: List[str],
+    total_col: str = "total",
+    drop_lowest: int = 0,
+) -> pd.DataFrame:
+    """Given a gradebook and the column names for the individual lesson scores, computes
+    a total score stored in total_col in gradebook. Drops the lowest drop_lowest assignments.
+
+    Returns the new gradebook
+    """
+    # Sum up all the lesson scores
+    gradebook[total_col] = gradebook.loc[:, lesson_column_names].sum(axis=1)
+
+    # Drop the lowest drop_lowest assignments
+    gradebook[total_col] = gradebook[total_col].clip(
+        upper=len(lesson_column_names) - drop_lowest
+    )
 
     return gradebook
 
 
-def compute_overall_score(metadata, lessons_gradebook, total_col="total"):
-    score_cols = ~lessons_gradebook.columns.isin(STUDENT_INFO_COLUMNS)
-    # Sum up all the lesson scores
-    lessons_gradebook[total_col] = lessons_gradebook.loc[:, score_cols].sum(axis=1)
-
-    # Drop the lowest 3 assignments
-    lessons_gradebook[total_col] = lessons_gradebook[total_col].clip(
-        upper=len(metadata) - DROP_LOWEST
-    )
-
-
-def display_stats(lessons_gradebook, total_col="total"):
+def display_stats(gradebook: pd.DataFrame, total_col: str = "total"):
+    """Saves statistics about the grades in total_col"""
     # Print and save stats
     print("Lesson stats")
-    stats = lessons_gradebook[total_col].describe()
+    stats = gradebook[total_col].describe()
     print(stats)
     with open(os.path.join(OUTPUT_DIR, "stats.txt"), "w") as f:
         f.write(str(stats))
 
     # Make a bar chart of scores
     possible_scores = np.arange(
-        0, max(lessons_gradebook[total_col]) + 2
+        0, max(gradebook[total_col]) + 2
     )  # Kind of annoying to get chart to look correct
     fig, ax = plt.subplots(1, figsize=(20, 10))
-    sns.histplot(lessons_gradebook[total_col], ax=ax, bins=possible_scores)
+    sns.histplot(gradebook[total_col], ax=ax, bins=possible_scores)
     _ = ax.set_xlabel("Score")
     _ = ax.set_xticks(possible_scores)
     out_path = os.path.join(OUTPUT_DIR, "lessons_scores_hist.png")
@@ -166,7 +186,7 @@ def display_stats(lessons_gradebook, total_col="total"):
 
     # Make CDF of scores
     fig, ax = plt.subplots(1, figsize=(20, 10))
-    sns.ecdfplot(data=lessons_gradebook, x=total_col, ax=ax)
+    sns.ecdfplot(data=gradebook, x=total_col, ax=ax)
     _ = ax.set_xlabel("Score")
     out_path = os.path.join(OUTPUT_DIR, "lessons_scores_cdf.png")
     fig.savefig(out_path, bbox_inches="tight")
@@ -183,22 +203,22 @@ def main():
 
     # Get the students enrolled in Ed
     # Kind of a hack, but just look at last Lecture reading to get list of students
-    lessons_gradebook, _ = read_completions(metadata[-1]["title"])
-    lessons_gradebook = lessons_gradebook[["name", "tutorial"]]
+    gradebook, _ = read_completions(metadata[-1]["title"])
+    gradebook = gradebook[["name", "tutorial"]]
 
-    collect_completions(
-        lessons_gradebook, "L{num}", metadata, compute_score="partial_credit_by_score"
-    )  # , weights=20)
-
-    compute_overall_score(metadata, lessons_gradebook)
+    # Get the scores
+    gradebook, lessson_columns = collect_all_lesson_completions(
+        gradebook, "L{num}", metadata
+    )
+    gradebook = compute_total_score(gradebook, lessson_columns, drop_lowest=DROP_LOWEST)
 
     # Save scorebook
     result_path = os.path.join(OUTPUT_DIR, "lessons.csv")
-    lessons_gradebook = lessons_gradebook.reset_index()
-    lessons_gradebook.to_csv(result_path, index=False)
+    gradebook = gradebook.reset_index()
+    gradebook.to_csv(result_path, index=False)
 
     # Visualize stats
-    display_stats(lessons_gradebook)
+    display_stats(gradebook)
 
 
 if __name__ == "__main__":
