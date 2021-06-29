@@ -143,4 +143,4 @@ class Canvas:
         """Returns a timestamped filename for exporting"""
         now = datetime.datetime.now()
         date_format = "%Y-%b-%d-at-%H-%M"
-        return f"Canvas-Export-{now.strftime(date_format)}.csv"
+        return f"out/Canvas-Export-{now.strftime(date_format)}.csv"

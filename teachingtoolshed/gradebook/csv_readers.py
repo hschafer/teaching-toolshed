@@ -2,6 +2,8 @@ from typing import Any, Callable, Dict, Hashable, Mapping, Optional, Union
 
 import pandas as pd
 
+# Simple CSV Readers that read a single score column from various formatted CSVs
+
 
 class CSVReader:
     def __init__(
@@ -87,3 +89,6 @@ class EdStemReader(CSVReader):
             dummy_rows=dummy_rows,
         )
         self.scores = self.scores.rename(index=rename_index)  # type: ignore
+
+
+# More complicated CSV Readers
