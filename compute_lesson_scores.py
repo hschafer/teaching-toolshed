@@ -208,7 +208,7 @@ def main():
 
     # Get the scores
     gradebook, lessson_columns = collect_all_lesson_completions(
-        gradebook, "L{num}", metadata
+        gradebook, "L", metadata
     )
     gradebook = compute_total_score(gradebook, lessson_columns, drop_lowest=DROP_LOWEST)
 
