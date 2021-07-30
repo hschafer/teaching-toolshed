@@ -40,7 +40,8 @@ class CSVReader:
 
         # Change sid_col to store just UW Net IDs if they are emails
         if sid_is_email:
-            self.scores[self.sid_col] = self.scores[self.sid_col].str.split("@")[0]
+            self.scores[self.sid_col] = self.scores[self.sid_col].str.split("@", expand=True)[0]
+
 
         # Make the data frame indexed by net id
         self.scores = self.scores.set_index(self.sid_col)
