@@ -86,6 +86,12 @@ class EdStemAPI:
         response.raise_for_status()
         return response.content
 
+    # Enrollment info
+    def get_users(self):
+        admin_path = urljoin(EdStemAPI.API_URL, f"courses/{self._course_id}/admin")
+        admin_info = self._ed_get_request(admin_path)
+        return admin_info["users"]
+
     # Get lesson info
     def get_all_lessons(self) -> List[Dict[str, Any]]:
         """Gets all lessons for a course. Endpoint: /courses/{course_id}/lessons
@@ -259,6 +265,10 @@ class EdStemAPI:
             EdStemAPI.API_URL, "lessons/slides", quiz_id, "questions/results"
         )
         result = self._ed_post_request(
-            quiz_path, {"students": students, "noAttempt": no_attempt,},
+            quiz_path,
+            {
+                "students": students,
+                "noAttempt": no_attempt,
+            },
         )
         return result
