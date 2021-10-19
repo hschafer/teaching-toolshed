@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Hashable, Mapping, Optional, Union
+from typing import Any, Callable, Dict, Hashable, List, Mapping, Optional, Union
 
 import pandas as pd
 
@@ -10,7 +10,7 @@ class CSVReader:
         self,
         filename: str,
         sid_col: str,
-        score_col: str,
+        score_col: Union[str, List[str]],
         sid_is_email: bool = False,
         dummy_rows: int = 0,
     ):
@@ -25,14 +25,14 @@ class CSVReader:
         Args:
             filename: Filename containing scores for an assignment
             sid_col: Name of the column in this CSV that identifies a student (e.g., a UW NetID)
-            score_col: Name of the column in this CSV that has student scores for this assignment
+            score_col: Name of the column in this CSV that has student scores for this assignment or a list of columns
             sid_is_email: Optional; If True, removes the suffix of the sid_col values related to an
               email address (i.e., '@uw.edu')
             dummy_rows: Optional; Number of rows to skip in the CSV at the beginning
         """
         self.filename: str = filename
         self.dummy_rows: int = dummy_rows
-        self.score_col: str = score_col
+        self.score_col: Union[str, List[str]] = score_col
         self.sid_col: str = sid_col  # Might modify after reading in data
 
         # Read in data
@@ -40,14 +40,20 @@ class CSVReader:
 
         # Change sid_col to store just UW Net IDs if they are emails
         if sid_is_email:
-            self.scores[self.sid_col] = self.scores[self.sid_col].str.split("@", expand=True)[0]
-
+            self.scores[self.sid_col] = self.scores[self.sid_col].str.split(
+                "@", expand=True
+            )[0]
 
         # Make the data frame indexed by net id
         self.scores = self.scores.set_index(self.sid_col)
 
         # Drop all columns that aren't the score column. Keep as DataFrame
-        self.scores = self.scores[[self.score_col]]
+        if type(score_col) is str:
+            score_columns = [score_col]
+        else:  # type is list
+            score_columns = score_col
+
+        self.scores = self.scores[score_columns]
 
 
 class GradescopeReader(CSVReader):
@@ -55,7 +61,7 @@ class GradescopeReader(CSVReader):
         self,
         filename: str,
         sid_col: str,
-        score_col: str = "Total Score",
+        score_col: Union[str, List[str]] = "Total Score",
         dummy_rows: int = 0,
     ):
         """Helper class for common type of CSV export. See documentation for CSVReader"""
@@ -67,7 +73,7 @@ class EdStemReader(CSVReader):
         self,
         filename: str,
         sid_col: str,
-        score_col: str = "feedback grade",
+        score_col: Union[str, List[str]] = "feedback grade",
         sid_is_email: bool = True,
         dummy_rows: int = 0,
         rename_index: Dict[str, str] = {},
