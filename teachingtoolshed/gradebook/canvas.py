@@ -12,6 +12,7 @@ class Canvas:
         student_name_col: str = "Student",
         sid_col: str = "SIS Login ID",
         dummy_rows: int = 2,
+        out_dir: str = "out",
     ):
         """Class that manages state and changes to a Canvas Gradebook export.
 
@@ -28,6 +29,7 @@ class Canvas:
         self.student_name_col: str = student_name_col
         self.sid_col: str = sid_col
         self.dummy_rows: int = dummy_rows
+        self.out_dir = out_dir
 
         # Useful to know which assignments we changed for reporting differences
         self.changes: List[str] = []
@@ -67,7 +69,7 @@ class Canvas:
     def add_grades(
         self, canvas_col_name: str, csv_reader: CSVReader, grab_first: bool = False
     ):
-        """ Adds the scores from csv_reader to the Gradebook column canvas_col_name.
+        """Adds the scores from csv_reader to the Gradebook column canvas_col_name.
 
         The CSVReader and its subclasses read in student grades from other sources and
         are indexed by some unique student identifier (e.g., UW NetID). Note the values
@@ -131,16 +133,15 @@ class Canvas:
               generates a timestamped filename.
         """
         if filename is None:
-            filename = Canvas.export_filename()
+            filename = self.export_filename()
 
         df = self.dummies.append(
             self.canvas.reset_index(), ignore_index=True, sort=False
         )
         df.to_csv(filename, index=False)
 
-    @staticmethod
-    def export_filename() -> str:
+    def export_filename(self) -> str:
         """Returns a timestamped filename for exporting"""
         now = datetime.datetime.now()
         date_format = "%Y-%b-%d-at-%H-%M"
-        return f"out/Canvas-Export-{now.strftime(date_format)}.csv"
+        return f"{self.out_dir}/Canvas-Export-{now.strftime(date_format)}.csv"
