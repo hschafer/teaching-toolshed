@@ -93,6 +93,19 @@ class Canvas:
         # Give everyone else a 0
         self.canvas[canvas_col_name].fillna(0, inplace=True)
 
+    def set_grade(
+        self,
+        student_id: str,
+        canvas_col_name: str,
+        score: float,
+        grab_first: bool = False,
+    ):
+        """
+        Sets the grade for the given student for the given assignment to a particular value
+        """
+        canvas_col_name = self._find_column(canvas_col_name, grab_first=grab_first)
+        self.canvas.loc[student_id, canvas_col_name] = score
+
     def report_diffs(self):
         """Utility method to report differences for assignments added"""
 
