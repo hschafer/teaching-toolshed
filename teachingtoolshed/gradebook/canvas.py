@@ -106,6 +106,11 @@ class Canvas:
         canvas_col_name = self._find_column(canvas_col_name, grab_first=grab_first)
         self.canvas.loc[student_id, canvas_col_name] = score
 
+    def get_grade(self, student_id: str, canvas_col_name: str, grab_first: bool = False):
+        canvas_col_name = self._find_column(canvas_col_name, grab_first=grab_first)
+        return self.canvas.loc[student_id, canvas_col_name]
+
+
     def report_diffs(self):
         """Utility method to report differences for assignments added"""
 
