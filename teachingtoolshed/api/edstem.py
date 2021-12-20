@@ -272,3 +272,26 @@ class EdStemAPI:
             },
         )
         return result
+
+    def get_all_users(self, challenge_id):
+        users_path = urljoin(EdStemAPI.API_URL, "challenges", challenge_id, "users")
+
+        result = self._ed_get_request(users_path)["users"]
+        return result
+
+    def get_all_submissions(
+        self,
+        challenge_id,
+        user_id,
+    ):
+        submission_path = urljoin(
+            EdStemAPI.API_URL,
+            "users",
+            user_id,
+            "challenges",
+            challenge_id,
+            "submissions",
+        )
+
+        result = self._ed_get_request(submission_path)["submissions"]
+        return result
