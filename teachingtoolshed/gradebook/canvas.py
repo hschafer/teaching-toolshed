@@ -106,12 +106,13 @@ class Canvas:
         canvas_col_name = self._find_column(canvas_col_name, grab_first=grab_first)
         self.canvas.loc[student_id, canvas_col_name] = score
 
-    def get_grade(self, student_id: str, canvas_col_name: str, grab_first: bool = False):
+    def get_grade(
+        self, student_id: str, canvas_col_name: str, grab_first: bool = False
+    ):
         canvas_col_name = self._find_column(canvas_col_name, grab_first=grab_first)
         return self.canvas.loc[student_id, canvas_col_name]
 
-
-    def report_diffs(self):
+    def report_diffs(self, verbose=False):
         """Utility method to report differences for assignments added"""
 
         df_merged = self.original_canvas.merge(
@@ -127,6 +128,21 @@ class Canvas:
             col_diffs = df_merged[changed_col + "_old"].astype(float) != df_merged[
                 changed_col + "_new"
             ].astype(float)
+
+            if verbose and col_diffs.any():
+                print(f"Changes for {changed_col}")
+                print(
+                    df_merged.loc[
+                        col_diffs,
+                        [
+                            self.student_name_col + "_old",
+                            self.sid_col,
+                            changed_col + "_old",
+                            changed_col + "_new",
+                        ],
+                    ]
+                )
+
             if diffs is None:
                 diffs = col_diffs
             else:
@@ -141,6 +157,10 @@ class Canvas:
                 + [col + "_old" for col in self.changes]
                 + [col + "_new" for col in self.changes]
             )
+
+            if verbose and diffs.sum() > 0:
+                print("All Changes")
+                print(df_merged.loc[diffs, cols])
             return df_merged[diffs][cols].copy()
 
     def export(self, filename: str = None):
