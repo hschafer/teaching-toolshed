@@ -8,9 +8,11 @@ Every request requires you authenticate. In order to do this, you will need your
 authentication token from EdStem. You can access your token by looking at network requests
 on EdStem and finding a request with an x-token header.
 """
+import json
 from typing import Any, Dict, List
 
 import requests
+import itertools
 
 # Special type to indicate only a 0 or 1 should be passed
 BinaryFlag = int
@@ -64,17 +66,23 @@ class EdStemAPI:
             HTTPError: If there was an error with the HTTP request
         """
         response = requests.get(
-            url, params=query_params, headers={"x-token": self._token}
+            url, params=query_params, headers={"Authorization": "Bearer " + self._token}
         )
         response.raise_for_status()
         return response.json()
 
-    def _ed_post_request(self, url: str, query_params: Dict[str, Any] = {}) -> bytes:
+    def _ed_post_request(
+        self, 
+        url: str, 
+        query_params: Dict[str, Any] = {},
+        json: Dict[str, Any] = {}
+    ) -> bytes:
         """Sends a POST request to EdStem.
 
         Args:
             url: URL endpoint to hit
             query_params: A dictionary of query parameters and values
+            json: A dictionary of parameters and values to pass as the payload
 
         Returns:
             A binary string containing response content
@@ -82,7 +90,34 @@ class EdStemAPI:
         Raises:
             HTTPError: If there was an error with the HTTP request
         """
-        response = requests.post(url, params=query_params, data={"_token": self._token})
+        response = requests.post(
+            url, params=query_params, json=json, headers={"Authorization": "Bearer " + self._token}
+        )
+        response.raise_for_status()
+        return response.content
+
+    def _ed_put_request(
+        self, 
+        url: str, 
+        query_params: Dict[str, Any] = {},
+        json: Dict[str, Any] = {}
+    ) -> bytes:
+        """Sends a PUT request to EdStem.
+
+        Args:
+            url: URL endpoint to hit
+            query_params: A dictionary of query parameters and values
+            json: A dictionary of parameters and values to pass as the payload
+
+        Returns:
+            A binary string containing response content
+
+        Raises:
+            HTTPError: If there was an error with the HTTP request
+        """
+        response = requests.put(
+            url, params=query_params, json=json, headers={"Authorization": "Bearer " + self._token}
+        )
         response.raise_for_status()
         return response.content
 
@@ -103,6 +138,17 @@ class EdStemAPI:
         lessons = self._ed_get_request(lessons_path)
         return lessons["lessons"]
 
+    # Get module info
+    def get_all_modules(self) -> List[Dict[str, Any]]:
+        """Gets all modules for a course. Endpoint: /courses/{course_id}/lessons
+
+        Returns:
+            A list of JSON objects, one for each module.
+        """
+        lessons_path = urljoin(EdStemAPI.API_URL, f"courses/{self._course_id}/lessons")
+        lessons = self._ed_get_request(lessons_path)
+        return lessons["modules"]        
+
     def get_lesson(self, lesson_id: int) -> Dict[str, Any]:
         """Gets metadata for a single lesson. Endpoint: /lessons/{lesson_id}
 
@@ -115,6 +161,112 @@ class EdStemAPI:
         lesson_path = urljoin(EdStemAPI.API_URL, "lessons", lesson_id)
         lesson = self._ed_get_request(lesson_path)["lesson"]
         return lesson
+
+    def get_slide(self, slide_id: int) -> Dict[str, Any]:
+        """Gets metadata for a single slide. Endpoint: /lessons/slides/{slide_id}
+
+        Args:
+            slide_id: Identifier for slide
+
+        Returns:
+            A JSON object with the specified slide's metadata
+        """
+        slide_path = urljoin(EdStemAPI.API_URL, "lessons", "slides", slide_id)
+        slide = self._ed_get_request(slide_path)["slide"]
+        return slide        
+
+    def create_lesson(
+        self, 
+        title : str = None,
+        options : Dict[str, Any] = {}
+        ) -> Dict[str, Any]:
+        """Creates a new Ed lesson. Endpoint: /courses/{course_id}/lessons
+
+        Args:
+            title: Title for the new lesson
+            options: Dictionary of options to set on the lesson
+
+        Returns:
+            A JSON object with the new lesson's metadata
+        """
+        lessons_path = urljoin(EdStemAPI.API_URL, f"courses/{self._course_id}/lessons")
+        lesson_dict = {
+            "lesson": ({
+                "title" : title
+            } | options)
+        }
+        lesson = json.loads(self._ed_post_request(lessons_path, json=lesson_dict))["lesson"]
+        return lesson
+
+    def edit_lesson(
+        self, 
+        lesson_id : int,
+        options : Dict[str, Any] = {}
+        ) -> Dict[str, Any]:
+        """Modifies an existing Ed lesson. Endpoint: /lessons/{lesson_id}
+
+        Args:
+            lesson_id: Identifier for lesson
+            options: Dictionary of options to set on the lesson
+
+        Returns:
+            A JSON object with the updated lesson's metadata
+        """
+        lesson = self.get_lesson(lesson_id)
+        lesson_path = urljoin(EdStemAPI.API_URL, f"lessons/{lesson_id}")
+        lesson_dict = {
+            "lesson": lesson | options
+        }
+        lesson = json.loads(self._ed_put_request(lesson_path, json=lesson_dict))["lesson"]
+        return lesson
+
+    def clone_slide(
+        self,
+        slide_id: int,
+        lesson_id: int,
+        is_hidden: bool = False,
+        ) -> Dict[str, Any]:
+        """Clones an existing Ed slide into a new lesson. Endpoint: /lessons/slides/{slide_id}/clone
+
+        Args:
+            slide_id: Identifier for slide to clone
+            lesson_id: Identifier for lesson to clone into
+
+        Returns:
+            A JSON object with the cloned slide's metadata
+        """
+
+        clone_path = urljoin(EdStemAPI.API_URL, f"lessons/slides/{slide_id}/clone")
+        payload = {
+            "lesson_id": lesson_id,
+            "is_hidden": is_hidden
+        }
+        slide = json.loads(self._ed_post_request(clone_path, json=payload))["slide"]
+        return slide
+
+    # def edit_slide(
+    #     self, 
+    #     slide_id : int,
+    #     options : Dict[str, Any] = {}
+    #     ) -> Dict[str, Any]:
+    #     """Modifies an existing Ed slide. Endpoint: /lessons/slides/{slide_id}
+
+    #     Args:
+    #         slide_id: Identifier for slide
+    #         options: Dictionary of options to set on the slide
+
+    #     Returns:
+    #         A JSON object with the updated slide's metadata
+    #     """
+    #     slide = self.get_slide(slide_id)
+    #     slide_path = urljoin(EdStemAPI.API_URL, f"lessons/slides/{slide_id}")
+    #     slide_dict = {
+    #         "slide": slide | options
+    #     }
+    #     print(slide_dict)
+    #     slide = json.loads(self._ed_put_request(slide_path, json=slide_dict))["slide"]
+    #     return slide                
+
 
     def get_questions(self, slide_id: int) -> List[Dict[str, Any]]:
         """Gets metadata for a single Quiz slide's questions. Endpoint: /lessons/slides/{slide_id}/questions
@@ -278,6 +430,20 @@ class EdStemAPI:
 
         result = self._ed_get_request(users_path)["users"]
         return result
+
+    def get_all_users(self):
+        users = self._ed_get_request(urljoin(EdStemAPI.API_URL, "courses", self._course_id, "users"))['users']
+        return users
+
+    def get_all_tutorials(self):
+        users = self.get_all_users()
+        groups = itertools.groupby(sorted(users, key=lambda x: x['tutorial'] if x['tutorial'] else ""), 
+                                   key=lambda x: x['tutorial'])
+
+        tutorials = []
+        for k,_ in groups:
+            tutorials.append(k)
+        return tutorials
 
     def get_all_submissions(
         self,
