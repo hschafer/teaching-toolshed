@@ -100,7 +100,8 @@ class EdStemAPI:
         self, 
         url: str, 
         query_params: Dict[str, Any] = {},
-        json: Dict[str, Any] = {}
+        json: Dict[str, Any] = {},
+        data: Dict[str, Any] = {}
     ) -> bytes:
         """Sends a PUT request to EdStem.
 
@@ -116,7 +117,7 @@ class EdStemAPI:
             HTTPError: If there was an error with the HTTP request
         """
         response = requests.put(
-            url, params=query_params, json=json, headers={"Authorization": "Bearer " + self._token}
+            url, params=query_params, json=json, data=data, headers={"Authorization": "Bearer " + self._token}
         )
         response.raise_for_status()
         return response.content
@@ -244,28 +245,25 @@ class EdStemAPI:
         slide = json.loads(self._ed_post_request(clone_path, json=payload))["slide"]
         return slide
 
-    # def edit_slide(
-    #     self, 
-    #     slide_id : int,
-    #     options : Dict[str, Any] = {}
-    #     ) -> Dict[str, Any]:
-    #     """Modifies an existing Ed slide. Endpoint: /lessons/slides/{slide_id}
+    def edit_slide(
+        self, 
+        slide_id : int,
+        options : Dict[str, Any] = {}
+        ) -> Dict[str, Any]:
+        """Modifies an existing Ed slide. Endpoint: /lessons/slides/{slide_id}
 
-    #     Args:
-    #         slide_id: Identifier for slide
-    #         options: Dictionary of options to set on the slide
+        Args:
+            slide_id: Identifier for slide
+            options: Dictionary of options to set on the slide
 
-    #     Returns:
-    #         A JSON object with the updated slide's metadata
-    #     """
-    #     slide = self.get_slide(slide_id)
-    #     slide_path = urljoin(EdStemAPI.API_URL, f"lessons/slides/{slide_id}")
-    #     slide_dict = {
-    #         "slide": slide | options
-    #     }
-    #     print(slide_dict)
-    #     slide = json.loads(self._ed_put_request(slide_path, json=slide_dict))["slide"]
-    #     return slide                
+        Returns:
+            A JSON object with the updated slide's metadata
+        """
+        slide = self.get_slide(slide_id)
+        slide_path = urljoin(EdStemAPI.API_URL, f"lessons/slides/{slide_id}")
+        slide_dict = slide | options
+        slide = json.loads(self._ed_put_request(slide_path, data={"slide": json.dumps(slide_dict)}))["slide"]
+        return slide                
 
 
     def get_questions(self, slide_id: int) -> List[Dict[str, Any]]:
