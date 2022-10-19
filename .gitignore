@@ -131,6 +131,9 @@ dmypy.json
 # VSCode
 .vscode
 
+# Macs
+.DS_Store
+
 # Data related to students
 data/
 out/

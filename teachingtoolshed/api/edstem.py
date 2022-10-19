@@ -218,7 +218,7 @@ class EdStemAPI:
         lesson_dict = {
             "lesson": lesson | options
         }
-        lesson = json.loads(self._ed_put_request(lesson_path, json=lesson_dict))["lesson"]
+        lesson = json.loads(self._ed_put_request(lesson_path, data={"lesson": json.dumps(lesson_dict)}))["lesson"]
         return lesson
 
     def clone_slide(
