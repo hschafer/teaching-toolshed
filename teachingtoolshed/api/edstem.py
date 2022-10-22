@@ -126,6 +126,27 @@ class EdStemAPI:
         response.raise_for_status()
         return response.content
 
+    def _ed_delete_request(
+        self,
+        url: str,
+    ) -> None:
+        """Sends a DELETE request to EdStem.
+
+        Args:
+            url: URL endpoint to hit
+
+        Returns:
+            None
+
+        Raises:
+            HTTPError: If there was an error with the HTTP request
+        """
+        response = requests.delete(
+            url,
+            headers={"Authorization": "Bearer " + self._token},
+        )
+        response.raise_for_status()
+
     # Enrollment info
     def get_users(self):
         admin_path = urljoin(EdStemAPI.API_URL, f"courses/{self._course_id}/admin")
@@ -273,6 +294,45 @@ class EdStemAPI:
         )
         questions = self._ed_get_request(questions_path)["questions"]
         return questions
+
+    def edit_question(
+        self, question_id: int, question_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Edits the question with the given id with the updated question data.
+
+        Endpoint: /lessons/slides/questions/{question_id}
+
+        Args:
+            question_id: Identifier for question
+            question_data: Dict containing information to update in the queston
+
+        Returns:
+            The updated JSON object for the question
+        """
+        update_question_path = urljoin(
+            EdStemAPI.API_URL, "lessons", "slides", "questions", question_id
+        )
+
+        # API call requires the data to be the value of a "question" key
+        if "question" not in question_data:
+            question_data = {"question": question_data}
+
+        response = self._ed_put_request(update_question_path, json=question_data)
+        return json.loads(response)["question"]
+
+    def delete_question(self, question_id: int) -> None:
+        """Deletes the given question with this id. Endpoint /lessons/slides/questions/{question_id}
+
+        Args:
+            question_id: Identifier for question
+
+        Returns:
+            None
+        """
+        delete_path = urljoin(
+            EdStemAPI.API_URL, "lessons", "slides", "questions", question_id
+        )
+        self._ed_delete_request(delete_path)
 
     # Methods for getting information about lesson/assignment completion
     def get_lesson_completions(
