@@ -72,10 +72,7 @@ class EdStemAPI:
         return response.json()
 
     def _ed_post_request(
-        self, 
-        url: str, 
-        query_params: Dict[str, Any] = {},
-        json: Dict[str, Any] = {}
+        self, url: str, query_params: Dict[str, Any] = {}, json: Dict[str, Any] = {}
     ) -> bytes:
         """Sends a POST request to EdStem.
 
@@ -91,17 +88,20 @@ class EdStemAPI:
             HTTPError: If there was an error with the HTTP request
         """
         response = requests.post(
-            url, params=query_params, json=json, headers={"Authorization": "Bearer " + self._token}
+            url,
+            params=query_params,
+            json=json,
+            headers={"Authorization": "Bearer " + self._token},
         )
         response.raise_for_status()
         return response.content
 
     def _ed_put_request(
-        self, 
-        url: str, 
+        self,
+        url: str,
         query_params: Dict[str, Any] = {},
         json: Dict[str, Any] = {},
-        data: Dict[str, Any] = {}
+        data: Dict[str, Any] = {},
     ) -> bytes:
         """Sends a PUT request to EdStem.
 
@@ -117,7 +117,11 @@ class EdStemAPI:
             HTTPError: If there was an error with the HTTP request
         """
         response = requests.put(
-            url, params=query_params, json=json, data=data, headers={"Authorization": "Bearer " + self._token}
+            url,
+            params=query_params,
+            json=json,
+            data=data,
+            headers={"Authorization": "Bearer " + self._token},
         )
         response.raise_for_status()
         return response.content
@@ -148,7 +152,7 @@ class EdStemAPI:
         """
         lessons_path = urljoin(EdStemAPI.API_URL, f"courses/{self._course_id}/lessons")
         lessons = self._ed_get_request(lessons_path)
-        return lessons["modules"]        
+        return lessons["modules"]
 
     def get_lesson(self, lesson_id: int) -> Dict[str, Any]:
         """Gets metadata for a single lesson. Endpoint: /lessons/{lesson_id}
@@ -174,13 +178,11 @@ class EdStemAPI:
         """
         slide_path = urljoin(EdStemAPI.API_URL, "lessons", "slides", slide_id)
         slide = self._ed_get_request(slide_path)["slide"]
-        return slide        
+        return slide
 
     def create_lesson(
-        self, 
-        title : str = None,
-        options : Dict[str, Any] = {}
-        ) -> Dict[str, Any]:
+        self, title: str = None, options: Dict[str, Any] = {}
+    ) -> Dict[str, Any]:
         """Creates a new Ed lesson. Endpoint: /courses/{course_id}/lessons
 
         Args:
@@ -191,19 +193,15 @@ class EdStemAPI:
             A JSON object with the new lesson's metadata
         """
         lessons_path = urljoin(EdStemAPI.API_URL, f"courses/{self._course_id}/lessons")
-        lesson_dict = {
-            "lesson": ({
-                "title" : title
-            } | options)
-        }
-        lesson = json.loads(self._ed_post_request(lessons_path, json=lesson_dict))["lesson"]
+        lesson_dict = {"lesson": ({"title": title} | options)}
+        lesson = json.loads(self._ed_post_request(lessons_path, json=lesson_dict))[
+            "lesson"
+        ]
         return lesson
 
     def edit_lesson(
-        self, 
-        lesson_id : int,
-        options : Dict[str, Any] = {}
-        ) -> Dict[str, Any]:
+        self, lesson_id: int, options: Dict[str, Any] = {}
+    ) -> Dict[str, Any]:
         """Modifies an existing Ed lesson. Endpoint: /lessons/{lesson_id}
 
         Args:
@@ -215,8 +213,10 @@ class EdStemAPI:
         """
         lesson = self.get_lesson(lesson_id)
         lesson_path = urljoin(EdStemAPI.API_URL, f"lessons/{lesson_id}")
-        lesson_dict =  lesson | options
-        lesson = json.loads(self._ed_put_request(lesson_path, data={"lesson": json.dumps(lesson_dict)}))["lesson"]
+        lesson_dict = lesson | options
+        lesson = json.loads(
+            self._ed_put_request(lesson_path, data={"lesson": json.dumps(lesson_dict)})
+        )["lesson"]
         return lesson
 
     def clone_slide(
@@ -224,7 +224,7 @@ class EdStemAPI:
         slide_id: int,
         lesson_id: int,
         is_hidden: bool = False,
-        ) -> Dict[str, Any]:
+    ) -> Dict[str, Any]:
         """Clones an existing Ed slide into a new lesson. Endpoint: /lessons/slides/{slide_id}/clone
 
         Args:
@@ -236,18 +236,11 @@ class EdStemAPI:
         """
 
         clone_path = urljoin(EdStemAPI.API_URL, f"lessons/slides/{slide_id}/clone")
-        payload = {
-            "lesson_id": lesson_id,
-            "is_hidden": is_hidden
-        }
+        payload = {"lesson_id": lesson_id, "is_hidden": is_hidden}
         slide = json.loads(self._ed_post_request(clone_path, json=payload))["slide"]
         return slide
 
-    def edit_slide(
-        self, 
-        slide_id : int,
-        options : Dict[str, Any] = {}
-        ) -> Dict[str, Any]:
+    def edit_slide(self, slide_id: int, options: Dict[str, Any] = {}) -> Dict[str, Any]:
         """Modifies an existing Ed slide. Endpoint: /lessons/slides/{slide_id}
 
         Args:
@@ -260,9 +253,10 @@ class EdStemAPI:
         slide = self.get_slide(slide_id)
         slide_path = urljoin(EdStemAPI.API_URL, f"lessons/slides/{slide_id}")
         slide_dict = slide | options
-        slide = json.loads(self._ed_put_request(slide_path, data={"slide": json.dumps(slide_dict)}))["slide"]
-        return slide                
-
+        slide = json.loads(
+            self._ed_put_request(slide_path, data={"slide": json.dumps(slide_dict)})
+        )["slide"]
+        return slide
 
     def get_questions(self, slide_id: int) -> List[Dict[str, Any]]:
         """Gets metadata for a single Quiz slide's questions. Endpoint: /lessons/slides/{slide_id}/questions
@@ -428,16 +422,20 @@ class EdStemAPI:
         return result
 
     def get_all_users(self):
-        users = self._ed_get_request(urljoin(EdStemAPI.API_URL, "courses", self._course_id, "users"))['users']
+        users = self._ed_get_request(
+            urljoin(EdStemAPI.API_URL, "courses", self._course_id, "users")
+        )["users"]
         return users
 
     def get_all_tutorials(self):
         users = self.get_all_users()
-        groups = itertools.groupby(sorted(users, key=lambda x: x['tutorial'] if x['tutorial'] else ""), 
-                                   key=lambda x: x['tutorial'])
+        groups = itertools.groupby(
+            sorted(users, key=lambda x: x["tutorial"] if x["tutorial"] else ""),
+            key=lambda x: x["tutorial"],
+        )
 
         tutorials = []
-        for k,_ in groups:
+        for k, _ in groups:
             tutorials.append(k)
         return tutorials
 
