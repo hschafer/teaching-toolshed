@@ -213,10 +213,11 @@ class EdStemAPI:
         """
         lesson = self.get_lesson(lesson_id)
         lesson_path = urljoin(EdStemAPI.API_URL, f"lessons/{lesson_id}")
-        lesson_dict = lesson | options
-        lesson = json.loads(
-            self._ed_put_request(lesson_path, data={"lesson": json.dumps(lesson_dict)})
-        )["lesson"]
+        lesson_dict = {"lesson": lesson | options}
+        lesson = json.loads(self._ed_put_request(lesson_path, json=lesson_dict))[
+            "lesson"
+        ]
+
         return lesson
 
     def clone_slide(
