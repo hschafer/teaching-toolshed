@@ -129,23 +129,32 @@ class EdStemAPI:
     def _ed_delete_request(
         self,
         url: str,
-    ) -> None:
+        query_params: Dict[str, Any] = {},
+        json: Dict[str, Any] = {},
+        data: Dict[str, Any] = {},
+    ) -> bytes:
         """Sends a DELETE request to EdStem.
 
         Args:
             url: URL endpoint to hit
+            query_params: A dictionary of query parameters and values
+            json: A dictionary of parameters and values to pass as the payload
 
         Returns:
-            None
+            A binary string containing response content
 
         Raises:
             HTTPError: If there was an error with the HTTP request
         """
         response = requests.delete(
             url,
+            params=query_params,
+            json=json,
+            data=data,
             headers={"Authorization": "Bearer " + self._token},
         )
         response.raise_for_status()
+        return response.content
 
     # Enrollment info
     def get_users(self):
@@ -238,7 +247,6 @@ class EdStemAPI:
         lesson = json.loads(self._ed_put_request(lesson_path, json=lesson_dict))[
             "lesson"
         ]
-
         return lesson
 
     def clone_slide(
@@ -476,6 +484,30 @@ class EdStemAPI:
         )
         return result
 
+    def post_grades(self, submission_id, grades):
+        path = urljoin(
+            EdStemAPI.API_URL, "challenges", "submissions", submission_id, "feedback"
+        )
+
+        data = {"feedback": {"mark": None, "formatted": True, "criteria": grades}}
+        return self._ed_put_request(path, json=data)
+
+    def connect_user_to_workspace(self, challenge_id, user_id):
+        connect_path = urljoin(EdStemAPI.API_URL, "challenges", challenge_id, "connect")
+        self._ed_post_request(connect_path, json={"user_id": user_id})
+
+    def submit_all_challenge(self, challenge_id):
+        submit_path = urljoin(
+            EdStemAPI.API_URL, "challenges", challenge_id, "submit_all"
+        )
+        self._ed_post_request(submit_path)
+
+    def submit_all_quiz(self, slide_id):
+        submit_path = urljoin(
+            EdStemAPI.API_URL, "lessons", "slides", slide_id, "questions", "submit_all"
+        )
+        self._ed_post_request(submit_path)
+
     def get_all_users(self, challenge_id):
         users_path = urljoin(EdStemAPI.API_URL, "challenges", challenge_id, "users")
 
@@ -484,7 +516,7 @@ class EdStemAPI:
 
     def get_all_users(self):
         users = self._ed_get_request(
-            urljoin(EdStemAPI.API_URL, "courses", self._course_id, "users")
+            urljoin(EdStemAPI.API_URL, "courses", self._course_id, "analytics", "users")
         )["users"]
         return users
 
@@ -516,3 +548,7 @@ class EdStemAPI:
 
         result = self._ed_get_request(submission_path)["submissions"]
         return result
+
+    def delete_submission(self, sub_id):
+        delete_path = urljoin(EdStemAPI.API_URL, "challenges", "submissions", sub_id)
+        return self._ed_delete_request(delete_path)
