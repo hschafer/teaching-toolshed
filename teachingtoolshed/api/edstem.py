@@ -508,7 +508,7 @@ class EdStemAPI:
         )
         self._ed_post_request(submit_path)
 
-    def get_all_users(self, challenge_id):
+    def get_all_users_for_challenge(self, challenge_id):
         users_path = urljoin(EdStemAPI.API_URL, "challenges", challenge_id, "users")
 
         result = self._ed_get_request(users_path)["users"]
@@ -533,6 +533,24 @@ class EdStemAPI:
         return tutorials
 
     def get_all_submissions(
+        self,
+        challenge_id: int,
+        students: BinaryFlag = 1,
+        type: str = "optimised",
+        tz: str = "America/Los_Angeles",
+    ):
+
+        # TODO also add ability to specify before date
+        submission_path = urljoin(
+            EdStemAPI.API_URL, "challenges", challenge_id, "submissions"
+        )
+        result = self._ed_post_request(
+            submission_path,
+            query_params={"studuents": students, "type": type, "tz": tz},
+        )
+        return result
+
+    def get_all_submissions_for_user(
         self,
         challenge_id,
         user_id,
