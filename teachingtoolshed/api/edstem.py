@@ -484,12 +484,38 @@ class EdStemAPI:
         )
         return result
 
-    def post_grades(self, submission_id, grades):
+    def post_grades(
+        self,
+        submission_id: int,
+        grades: List[Dict[str, Any]],
+        comment: str = '<document version="2.0"><paragraph/></document>',
+    ):
+        """
+        Posts feedback to the given submission id with the given grades and optional comment.
+
+        Args:
+            submission_id: ID for submission
+            grades: List of marks to apply, one per criteria (see example below).
+        Optiona Args:
+            comments: Contents for the overall feedback. **Note: Must be a proper XML document**
+
+        Example:
+        >>> ed.post_grades(123,
+        >>>     [[{name: "Stacks/Queues", description: "Excellent", mark: "E"}],
+        >>>     '<document version="2.0"><paragraph>Nice job!</paragraph></document>')
+        """
         path = urljoin(
             EdStemAPI.API_URL, "challenges", "submissions", submission_id, "feedback"
         )
 
-        data = {"feedback": {"mark": None, "formatted": True, "criteria": grades}}
+        data = {
+            "feedback": {
+                "mark": None,
+                "formatted": True,
+                "criteria": grades,
+                "content": comment,
+            }
+        }
         return self._ed_put_request(path, json=data)
 
     def connect_user_to_workspace(self, challenge_id, user_id):
