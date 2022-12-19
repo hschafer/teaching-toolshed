@@ -61,11 +61,18 @@ class GradescopeReader(CSVReader):
         self,
         filename: str,
         sid_col: str,
+        sid_is_email: bool = True,
         score_col: Union[str, List[str]] = "Total Score",
         dummy_rows: int = 0,
     ):
         """Helper class for common type of CSV export. See documentation for CSVReader"""
-        super().__init__(filename, sid_col, score_col, dummy_rows=dummy_rows)
+        super().__init__(
+            filename,
+            sid_col,
+            score_col,
+            sid_is_email=sid_is_email,
+            dummy_rows=dummy_rows,
+        )
 
 
 class EdStemReader(CSVReader):
