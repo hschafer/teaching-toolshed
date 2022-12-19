@@ -13,6 +13,7 @@ class CSVReader:
         score_col: Union[str, List[str]],
         sid_is_email: bool = False,
         dummy_rows: int = 0,
+        rename_index: Dict[str, str] = {},
     ):
         """Reads in a CSV containing scores for an assignment.
 
@@ -29,6 +30,7 @@ class CSVReader:
             sid_is_email: Optional; If True, removes the suffix of the sid_col values related to an
               email address (i.e., '@uw.edu')
             dummy_rows: Optional; Number of rows to skip in the CSV at the beginning
+            rename_index: Optional; Rename the index values to something else for inconsistencies
         """
         self.filename: str = filename
         self.dummy_rows: int = dummy_rows
@@ -55,6 +57,9 @@ class CSVReader:
 
         self.scores = self.scores[score_columns]
 
+        # Some students have incorrect names so rename them in the index
+        self.scores = self.scores.rename(index=rename_index)  # type: ignore
+
 
 class GradescopeReader(CSVReader):
     def __init__(
@@ -64,6 +69,7 @@ class GradescopeReader(CSVReader):
         sid_is_email: bool = True,
         score_col: Union[str, List[str]] = "Total Score",
         dummy_rows: int = 0,
+        rename_index: Dict[str, str] = {},
     ):
         """Helper class for common type of CSV export. See documentation for CSVReader"""
         super().__init__(
@@ -72,6 +78,7 @@ class GradescopeReader(CSVReader):
             score_col,
             sid_is_email=sid_is_email,
             dummy_rows=dummy_rows,
+            rename_index=rename_index,
         )
 
 
@@ -101,8 +108,8 @@ class EdStemReader(CSVReader):
             score_col,
             sid_is_email=sid_is_email,
             dummy_rows=dummy_rows,
+            rename_index=rename_index,
         )
-        self.scores = self.scores.rename(index=rename_index)  # type: ignore
 
 
 # More complicated CSV Readers
