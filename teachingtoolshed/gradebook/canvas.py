@@ -158,11 +158,10 @@ class Canvas:
             print("No differences found! 😱")
         else:
             print(f"Found {diffs.sum()} differences")
-            cols = (
-                [self.student_name_col + "_old", self.sid_col]
-                + [col + "_old" for col in self.changes]
-                + [col + "_new" for col in self.changes]
-            )
+            cols = [self.student_name_col + "_old", self.sid_col]
+            for col in self.changes:
+                cols.append(col + "_old")
+                cols.append(col + "_new")
 
             if verbose and diffs.sum() > 0:
                 print("All Changes")
