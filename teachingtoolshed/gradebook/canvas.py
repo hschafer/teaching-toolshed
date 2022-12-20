@@ -93,6 +93,12 @@ class Canvas:
         # Give everyone else a 0
         self.canvas[canvas_col_name].fillna(0, inplace=True)
 
+    def has_student(self, student_id: str) -> bool:
+        """
+        Returns if there is an entry for this student
+        """
+        return student_id in self.canvas.index
+
     def set_grade(
         self,
         student_id: str,
