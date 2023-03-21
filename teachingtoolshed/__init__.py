@@ -1,4 +1,6 @@
-__version__ = '0.0.5'
+import importlib.metadata
+
+__version__ = importlib.metadata.version("teachingtoolshed")
 
 from . import api
 from . import gradebook
