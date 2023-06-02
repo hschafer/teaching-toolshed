@@ -476,7 +476,7 @@ class EdStemAPI:
 
         """
         quiz_path = urljoin(
-                EdStemAPI.API_URL, "lessons/slides", quiz_id, "que:quizstions/results"
+                EdStemAPI.API_URL, "lessons/slides", quiz_id, "questions/results"
         )
         result = self._ed_post_request(
             quiz_path,
