@@ -401,6 +401,7 @@ class EdStemAPI:
         self,
         challenge_id: int,
         students: BinaryFlag = 1,
+        include_all: BinaryFlag = 1,
         feedback: BinaryFlag = 0,
         type: str = "optimised",
         score_type: str = "pertestcase",
@@ -422,6 +423,7 @@ class EdStemAPI:
             challenge_id: Identifier for challenge (not the same as a slide_id)
         Optional Args:
             students: Check; "Include students only"
+            include_all: Check; "
             feedback: Check; "Include feedback criteria columns and comment"
             type: Dropdown; "Choose which submissions will be included in the report"
                 Options: 'latest', 'latest-with-feedback', 'optimised, 'all'
@@ -441,6 +443,7 @@ class EdStemAPI:
             challenge_path,
             {
                 "students": students,
+                "include_all": include_all,
                 "type": type,
                 "numbers": numbers,
                 "scores": scores,
@@ -473,7 +476,7 @@ class EdStemAPI:
 
         """
         quiz_path = urljoin(
-            EdStemAPI.API_URL, "lessons/slides", quiz_id, "questions/results"
+                EdStemAPI.API_URL, "lessons/slides", quiz_id, "que:quizstions/results"
         )
         result = self._ed_post_request(
             quiz_path,
