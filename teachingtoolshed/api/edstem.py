@@ -210,6 +210,20 @@ class EdStemAPI:
         slide = self._ed_get_request(slide_path)["slide"]
         return slide
 
+    
+    def get_rubric(self, rubric_id: int) -> Dict[str, Any]:
+        """Gets metadata for a single rubric. Endpoint: /rubrics/{slide_id}
+
+        Args:
+            rubric_id: Identifier for rubric
+
+        Returns:
+            A JSON object with the specified rubric's metadata
+        """        
+        rubric_path = urljoin(EdStemAPI.API_URL, "rubrics", rubric_id)
+        rubric = self._ed_get_request(rubric_path)["rubric"]
+        return rubric
+
     def create_lesson(
         self, title: str = None, options: Dict[str, Any] = {}
     ) -> Dict[str, Any]:
