@@ -14,6 +14,7 @@ class CSVReader:
         sid_is_email: bool = False,
         dummy_rows: int = 0,
         rename_index: Dict[str, str] = {},
+        rename_columns: Dict[str, str] = {},
     ):
         """Reads in a CSV containing scores for an assignment.
 
@@ -48,6 +49,9 @@ class CSVReader:
 
         # Make the data frame indexed by net id
         self.scores = self.scores.set_index(self.sid_col)
+
+        # Rename columns as needed
+        self.scores = self.scores.rename(columns=rename_columns)
 
         # Drop all columns that aren't the score column. Keep as DataFrame
         if type(score_col) is str:
@@ -91,6 +95,7 @@ class EdStemReader(CSVReader):
         sid_is_email: bool = True,
         dummy_rows: int = 0,
         rename_index: Dict[str, str] = {},
+        rename_columns: Dict[str, str] = {},
     ):
         """Helper class for common type of CSV export. See documentation for CSVReader.
 
@@ -109,6 +114,7 @@ class EdStemReader(CSVReader):
             sid_is_email=sid_is_email,
             dummy_rows=dummy_rows,
             rename_index=rename_index,
+            rename_columns=rename_columns,
         )
 
 
