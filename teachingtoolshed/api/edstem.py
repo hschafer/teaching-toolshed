@@ -519,6 +519,14 @@ class EdStemAPI:
         else:
             return None
 
+    def get_rubric(self, rubric_id: int) -> dict[str, Any]:
+        url = api_url("rubrics", rubric_id)
+        return self._ed_get_request(url)["rubric"]
+
+    def get_quiz_response(self, attempt_id: int, question_id: int) -> list[dict[str, Any]]:
+        url = api_url("attempts", attempt_id, "quiz_responses", question_id)
+        return self._ed_get_request(url)["responses"]
+
     def post_grades(
         self,
         submission_id: int,
