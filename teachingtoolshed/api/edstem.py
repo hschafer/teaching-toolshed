@@ -527,6 +527,10 @@ class EdStemAPI:
         url = api_url("attempts", attempt_id, "quiz_responses", question_id)
         return self._ed_get_request(url)["responses"]
 
+    def mark(self, lesson_mark_id: int, items: dict[int, bool]):
+        url = api_url("rubrics", "selected", lesson_mark_id)
+        return self._ed_put_request(url, json={"items": items})
+
     def post_grades(
         self,
         submission_id: int,
