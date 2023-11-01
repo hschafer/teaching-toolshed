@@ -166,7 +166,7 @@ class EdStemAPI:
 
     # Enrollment info
     def get_users(self):
-        admin_path = url_join(API_URL, f"courses/{self._course_id}/admin")
+        admin_path = api_url("courses", self._course_id, "admin")
         admin_info = self._ed_get_request(admin_path)
         return admin_info["users"]
 
@@ -177,7 +177,7 @@ class EdStemAPI:
         Returns:
             A list of JSON objects, one for each lesson.
         """
-        lessons_path = url_join(API_URL, f"courses/{self._course_id}/lessons")
+        lessons_path = api_url("courses", self._course_id, "lessons")
         lessons = self._ed_get_request(lessons_path)
         return lessons["lessons"]
 
@@ -188,7 +188,7 @@ class EdStemAPI:
         Returns:
             A list of JSON objects, one for each module.
         """
-        lessons_path = url_join(API_URL, f"courses/{self._course_id}/lessons")
+        lessons_path = api_url("courses", self._course_id, "lessons")
         lessons = self._ed_get_request(lessons_path)
         return lessons["modules"]
 
@@ -201,7 +201,7 @@ class EdStemAPI:
         Returns:
             A JSON object with the specified lesson's metadata
         """
-        lesson_path = url_join(API_URL, "lessons", lesson_id)
+        lesson_path = api_url("lessons", lesson_id)
         lesson = self._ed_get_request(lesson_path)["lesson"]
         return lesson
 
@@ -214,7 +214,7 @@ class EdStemAPI:
         Returns:
             A JSON object with the specified slide's metadata
         """
-        slide_path = url_join(API_URL, "lessons", "slides", slide_id)
+        slide_path = api_url("lessons", "slides", slide_id)
         slide = self._ed_get_request(slide_path)["slide"]
         return slide
 
@@ -228,7 +228,7 @@ class EdStemAPI:
         Returns:
             A JSON object with the specified rubric's metadata
         """
-        rubric_path = url_join(API_URL, "rubrics", rubric_id)
+        rubric_path = api_url("rubrics", rubric_id)
         rubric = self._ed_get_request(rubric_path)["rubric"]
         return rubric
 
@@ -244,7 +244,7 @@ class EdStemAPI:
         Returns:
             A JSON object with the new lesson's metadata
         """
-        lessons_path = url_join(API_URL, f"courses/{self._course_id}/lessons")
+        lessons_path = api_url("courses", self._course_id, "lessons")
         lesson_dict = {"lesson": ({"title": title} | options)}
         lesson = json.loads(self._ed_post_request(lessons_path, json=lesson_dict))[
             "lesson"
@@ -264,7 +264,7 @@ class EdStemAPI:
             A JSON object with the updated lesson's metadata
         """
         lesson = self.get_lesson(lesson_id)
-        lesson_path = url_join(API_URL, f"lessons/{lesson_id}")
+        lesson_path = api_url("lessons", lesson_id)
         lesson_dict = {"lesson": lesson | options}
         lesson = json.loads(self._ed_put_request(lesson_path, json=lesson_dict))[
             "lesson"
@@ -287,7 +287,7 @@ class EdStemAPI:
             A JSON object with the cloned slide's metadata
         """
 
-        clone_path = url_join(API_URL, f"lessons/slides/{slide_id}/clone")
+        clone_path = api_url("lessons", "slides", slide_id, "clone")
         payload = {"lesson_id": lesson_id, "is_hidden": is_hidden}
         slide = json.loads(self._ed_post_request(clone_path, json=payload))["slide"]
         return slide
@@ -303,7 +303,7 @@ class EdStemAPI:
             A JSON object with the updated slide's metadata
         """
         slide = self.get_slide(slide_id)
-        slide_path = url_join(API_URL, f"lessons/slides/{slide_id}")
+        slide_path = api_url("lessons", "slides", slide_id)
         slide_dict = slide | options
         slide = json.loads(
             self._ed_put_request(slide_path, data={"slide": json.dumps(slide_dict)})
@@ -544,7 +544,7 @@ class EdStemAPI:
         return self._ed_put_request(path, json=data)
 
     def connect_user_to_workspace(self, challenge_id, user_id):
-        connect_path = url_join(API_URL, "challenges", challenge_id, "connect")
+        connect_path = api_url("challenges", challenge_id, "connect")
         self._ed_post_request(connect_path, json={"user_id": user_id})
 
     def submit_all_challenge(self, challenge_id):
@@ -560,14 +560,14 @@ class EdStemAPI:
         self._ed_post_request(submit_path)
 
     def get_all_users_for_challenge(self, challenge_id):
-        users_path = url_join(API_URL, "challenges", challenge_id, "users")
+        users_path = api_url("challenges", challenge_id, "users")
 
         result = self._ed_get_request(users_path)["users"]
         return result
 
     def get_all_users(self):
         users = self._ed_get_request(
-            url_join(API_URL, "courses", self._course_id, "analytics", "users")
+            api_url("courses", self._course_id, "analytics", "users")
         )["users"]
         return users
 
@@ -619,5 +619,5 @@ class EdStemAPI:
         return result
 
     def delete_submission(self, sub_id):
-        delete_path = url_join(API_URL, "challenges", "submissions", sub_id)
+        delete_path = api_url("challenges", "submissions", sub_id)
         return self._ed_delete_request(delete_path)
