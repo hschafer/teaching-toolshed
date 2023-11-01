@@ -509,6 +509,16 @@ class EdStemAPI:
         )
         return result
 
+    def get_final_lesson_attempt(self, lesson_id: int, user_id: int) -> dict[str, Any] | None:
+        url = api_url("lessons", lesson_id, "attempts", user_id)
+        response = self._ed_get_request(url)
+
+        final_attempts = [attempt for attempt in response["attempts"] if attempt["id"] == response["final_id"]]
+        if len(final_attempts) == 1:
+            return final_attempts[0]
+        else:
+            return None
+
     def post_grades(
         self,
         submission_id: int,
