@@ -477,7 +477,7 @@ class EdStemAPI:
         return result
 
     def get_quiz_results(
-        self, quiz_id: int, students: BinaryFlag = 1, no_attempt: BinaryFlag = 1, rubric: BinaryFlag = 1
+        self, quiz_id: int, students: BinaryFlag = 1, no_attempt: BinaryFlag = 1, rubrics: BinaryFlag = 1
     ):
         """Gets results for a single quiz. Endpoint: /lessons/slides/{quiz_id}/questions/results
 
@@ -492,7 +492,7 @@ class EdStemAPI:
         Optional Args:
             students: Check; "Include students only: Only student responses will be included in the report"
             no_attempt: Check; "Show empty attempts: Create a row for the user in the results even if the user has not attempted the quiz"
-            rubric: Check; "Rubric criteria columns"
+            rubrics: Check; "Rubric criteria columns"
 
         Returns:
             Bytes content of the result file. Usually will be used to save to a file.
@@ -506,7 +506,7 @@ class EdStemAPI:
             {
                 "students": students,
                 "noAttempt": no_attempt,
-                "rubric": rubric
+                "rubrics": rubrics
             },
         )
         return result
