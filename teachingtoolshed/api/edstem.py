@@ -13,6 +13,8 @@ import json
 from typing import Any, Dict, List
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 
 # Special type to indicate only a 0 or 1 should be passed
 BinaryFlag = int
@@ -45,7 +47,6 @@ def api_url(*parts):
 
 
 class EdStemAPI:
-
     def __init__(self, course_id: int, token: str):
         """Initializes access to the EdStem API for a course with the given ID.
 
@@ -56,6 +57,18 @@ class EdStemAPI:
         """
         self._course_id = course_id
         self._token = token
+
+        # Initialize requests with retry
+        retry_strategy = Retry(
+            total=4,
+            backoff_factor=2,
+            status_forcelist=[429],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+
+        self._requests = requests.Session()
+        self._requests.mount("http://", adapter=adapter)
+        self._requests.mount("https://", adapter=adapter)
 
     # General functions for GET/POST
     def _ed_get_request(
@@ -73,7 +86,7 @@ class EdStemAPI:
         Raises:
             HTTPError: If there was an error with the HTTP request
         """
-        response = requests.get(
+        response = self._requests.get(
             url, params=query_params, headers={"Authorization": "Bearer " + self._token}
         )
         response.raise_for_status()
@@ -95,7 +108,7 @@ class EdStemAPI:
         Raises:
             HTTPError: If there was an error with the HTTP request
         """
-        response = requests.post(
+        response = self._requests.post(
             url,
             params=query_params,
             json=json,
@@ -124,7 +137,7 @@ class EdStemAPI:
         Raises:
             HTTPError: If there was an error with the HTTP request
         """
-        response = requests.put(
+        response = self._requests.put(
             url,
             params=query_params,
             json=json,
@@ -154,7 +167,7 @@ class EdStemAPI:
         Raises:
             HTTPError: If there was an error with the HTTP request
         """
-        response = requests.delete(
+        response = self._requests.delete(
             url,
             params=query_params,
             json=json,
@@ -217,7 +230,6 @@ class EdStemAPI:
         slide_path = api_url("lessons", "slides", slide_id)
         slide = self._ed_get_request(slide_path)["slide"]
         return slide
-
 
     def get_rubric(self, rubric_id: int) -> Dict[str, Any]:
         """Gets metadata for a single rubric. Endpoint: /rubrics/{slide_id}
@@ -319,9 +331,7 @@ class EdStemAPI:
         Returns:
             A JSON object with the specified lesson's metadata
         """
-        questions_path = url_join(
-            API_URL, "lessons", "slides", slide_id, "questions"
-        )
+        questions_path = url_join(API_URL, "lessons", "slides", slide_id, "questions")
         questions = self._ed_get_request(questions_path)["questions"]
         return questions
 
@@ -359,9 +369,7 @@ class EdStemAPI:
         Returns:
             None
         """
-        delete_path = url_join(
-            API_URL, "lessons", "slides", "questions", question_id
-        )
+        delete_path = url_join(API_URL, "lessons", "slides", "questions", question_id)
         self._ed_delete_request(delete_path)
 
     # Methods for getting information about lesson/assignment completion
@@ -401,9 +409,7 @@ class EdStemAPI:
         Returns:
             Bytes content of the result file. Usually will be used to save to a file.
         """
-        lesson_completion_path = url_join(
-            API_URL, "lessons", lesson_id, "results.csv"
-        )
+        lesson_completion_path = url_join(API_URL, "lessons", lesson_id, "results.csv")
         result = self._ed_post_request(
             lesson_completion_path,
             {
@@ -458,9 +464,7 @@ class EdStemAPI:
         Returns:
             Bytes content of the result file. Usually will be used to save to a file.
         """
-        challenge_path = url_join(
-            API_URL, "challenges", challenge_id, "results"
-        )
+        challenge_path = url_join(API_URL, "challenges", challenge_id, "results")
         result = self._ed_post_request(
             challenge_path,
             {
@@ -477,7 +481,11 @@ class EdStemAPI:
         return result
 
     def get_quiz_results(
-        self, quiz_id: int, students: BinaryFlag = 1, no_attempt: BinaryFlag = 1, rubrics: BinaryFlag = 1
+        self,
+        quiz_id: int,
+        students: BinaryFlag = 1,
+        no_attempt: BinaryFlag = 1,
+        rubrics: BinaryFlag = 1,
     ):
         """Gets results for a single quiz. Endpoint: /lessons/slides/{quiz_id}/questions/results
 
@@ -498,24 +506,24 @@ class EdStemAPI:
             Bytes content of the result file. Usually will be used to save to a file.
 
         """
-        quiz_path = url_join(
-                API_URL, "lessons/slides", quiz_id, "questions/results"
-        )
+        quiz_path = url_join(API_URL, "lessons/slides", quiz_id, "questions/results")
         result = self._ed_post_request(
             quiz_path,
-            {
-                "students": students,
-                "noAttempt": no_attempt,
-                "rubrics": rubrics
-            },
+            {"students": students, "noAttempt": no_attempt, "rubrics": rubrics},
         )
         return result
 
-    def get_final_lesson_attempt(self, lesson_id: int, user_id: int) -> dict[str, Any] | None:
+    def get_final_lesson_attempt(
+        self, lesson_id: int, user_id: int
+    ) -> dict[str, Any] | None:
         url = api_url("lessons", lesson_id, "attempts", user_id)
         response = self._ed_get_request(url)
 
-        final_attempts = [attempt for attempt in response["attempts"] if attempt["id"] == response["final_id"]]
+        final_attempts = [
+            attempt
+            for attempt in response["attempts"]
+            if attempt["id"] == response["final_id"]
+        ]
         if len(final_attempts) == 1:
             return final_attempts[0]
         else:
@@ -525,7 +533,9 @@ class EdStemAPI:
         url = api_url("rubrics", rubric_id)
         return self._ed_get_request(url)["rubric"]
 
-    def get_quiz_responses(self, attempt_id: int, question_id: int) -> list[dict[str, Any]]:
+    def get_quiz_responses(
+        self, attempt_id: int, question_id: int
+    ) -> list[dict[str, Any]]:
         url = api_url("attempts", attempt_id, "quiz_responses", question_id)
         return self._ed_get_request(url)["responses"]
 
@@ -553,9 +563,7 @@ class EdStemAPI:
         >>>     [[{name: "Stacks/Queues", description: "Excellent", mark: "E"}],
         >>>     '<document version="2.0"><paragraph>Nice job!</paragraph></document>')
         """
-        path = url_join(
-            API_URL, "challenges", "submissions", submission_id, "feedback"
-        )
+        path = url_join(API_URL, "challenges", "submissions", submission_id, "feedback")
 
         data = {
             "feedback": {
@@ -572,9 +580,7 @@ class EdStemAPI:
         self._ed_post_request(connect_path, json={"user_id": user_id})
 
     def submit_all_challenge(self, challenge_id):
-        submit_path = url_join(
-            API_URL, "challenges", challenge_id, "submit_all"
-        )
+        submit_path = url_join(API_URL, "challenges", challenge_id, "submit_all")
         self._ed_post_request(submit_path)
 
     def submit_all_quiz(self, slide_id):
@@ -614,11 +620,8 @@ class EdStemAPI:
         type: str = "optimised",
         tz: str = "America/Los_Angeles",
     ):
-
         # TODO also add ability to specify before date
-        submission_path = url_join(
-            API_URL, "challenges", challenge_id, "submissions"
-        )
+        submission_path = url_join(API_URL, "challenges", challenge_id, "submissions")
         result = self._ed_post_request(
             submission_path,
             query_params={"studuents": students, "type": type, "tz": tz},
