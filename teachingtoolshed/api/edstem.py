@@ -10,7 +10,7 @@ on EdStem and finding a request with an x-token header.
 """
 import itertools
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -397,6 +397,22 @@ class EdStemAPI:
 
         update_path = url_join(API_URL, "challenges", challenge_id, "update", type)
         self._ed_post_request(update_path)
+
+    def remark_challenge(
+        self, challenge_id: int, type: str, steps: Optional[int] = None
+    ) -> None:
+        """Remarks all submissions for this challenge.
+
+        Arguments:
+        - type: Indicator for which lessons to remark (latest, best, feedback)
+                feedback = "Latest with Feedback"
+        - steps: If latest, can specify the last steps submissions to remark.
+                If not latest, should be None
+        """
+        remark_path = url_join(API_URL, "challenges", challenge_id, "remark")
+
+        query_params = {"type": type} | ({"steps": steps} if type == "latest" else {})
+        self._ed_post_request(remark_path, query_params=query_params)
 
     # Methods for getting information about lesson/assignment completion
     def get_lesson_completions(
