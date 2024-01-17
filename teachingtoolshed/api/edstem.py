@@ -384,6 +384,20 @@ class EdStemAPI:
         delete_path = url_join(API_URL, "lessons", "slides", "questions", question_id)
         self._ed_delete_request(delete_path)
 
+     def update_challenge(self, challenge_id: int, type: str) -> None:
+        """Updates given challenge for the given type of resource (scaffold, check, solution, testbase)
+
+        Currently only used to update a challenge after copying new files to one resources (e.g., updating tests)
+        """
+        valid_types = ["scaffold", "check", "solution", "testbase"]
+        if type not in valid_types:
+            raise ValueError(
+                f"Invalid resource type {type} (should be one of {valid_types})"
+            )
+
+        update_path = url_join(API_URL, "challenges", challenge_id, "update", type)
+        self._ed_post_request(update_path)
+
     # Methods for getting information about lesson/assignment completion
     def get_lesson_completions(
         self,
