@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "teaching-toolshed"
-version = "0.2.5"
+version = "0.2.6"
 description = "Helpful libraries for running classes"
 authors = ["Hunter Schafer <hschafer@uw.edu>"]
 license = "MIT"
