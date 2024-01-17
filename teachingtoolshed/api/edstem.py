@@ -322,6 +322,18 @@ class EdStemAPI:
         )["slide"]
         return slide
 
+    def delete_slide(self, slide_id: int) -> None:
+        """Deletes the given slide with this id. Endpoint /lessons/slides/{slide_id}
+
+        Args:
+            slide_id: Identifier for a slide
+
+        Returns:
+            None
+        """
+        delete_path = url_join(API_URL, "lessons", "slides", slide_id)
+        self._ed_delete_request(delete_path)
+
     def get_questions(self, slide_id: int) -> List[Dict[str, Any]]:
         """Gets metadata for a single Quiz slide's questions. Endpoint: /lessons/slides/{slide_id}/questions
 
