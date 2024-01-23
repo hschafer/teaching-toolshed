@@ -6,6 +6,7 @@ authors = ["Hunter Schafer <hschafer@uw.edu>"]
 license = "MIT"
 readme = "README.md"
 packages = [{include = "teachingtoolshed"}]
+repository = "https://github.com/hschafer/teaching-toolshed"
 
 [tool.poetry.dependencies]
 python = "^3.10"
