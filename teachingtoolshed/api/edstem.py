@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 
 import requests
 from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
+from urllib3.util import Retry, retry
 
 # Special type to indicate only a 0 or 1 should be passed
 BinaryFlag = int
@@ -47,21 +47,30 @@ def api_url(*parts):
 
 
 class EdStemAPI:
-    def __init__(self, course_id: int, token: str):
+    def __init__(
+        self,
+        course_id: int,
+        token: str,
+        max_retries: int = 10,
+        retry_factor: float = 0.5,
+    ):
         """Initializes access to the EdStem API for a course with the given ID.
 
 
         Args:
             course_id: An integer course ID for the course to access. See EdStem URL.
             token: Your EdStem authentication token
+            max_retires: In the case of a rate limit, how many times we retry the request (default 10)
+            retry_factor: Controls the spacing of time between retries. If the i^th retry fails, will wait
+                          retry_factor * (2 ** i) seconds
         """
         self._course_id = course_id
         self._token = token
 
         # Initialize requests with retry
         retry_strategy = Retry(
-            total=10,
-            backoff_factor=0.5,
+            total=max_retries,
+            backoff_factor=retry_factor,
             status_forcelist=[429],
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
