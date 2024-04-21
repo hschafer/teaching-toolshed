@@ -60,8 +60,8 @@ class EdStemAPI:
 
         # Initialize requests with retry
         retry_strategy = Retry(
-            total=4,
-            backoff_factor=2,
+            total=10,
+            backoff_factor=0.5,
             status_forcelist=[429],
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
