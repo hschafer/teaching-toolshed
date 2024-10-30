@@ -435,6 +435,7 @@ class EdStemAPI:
         ignore_late: BinaryFlag = 0,
         late_no_points: BinaryFlag = 0,
         tz: str = "America/Los_Angeles",
+        points: BinaryFlag = 0,
     ) -> bytes:
         """Gets completion information for a single lesson. Endpoint: /lessons/{lesson_id}/results.csv
 
@@ -456,7 +457,7 @@ class EdStemAPI:
             ignore_late: Check; "Ignore late submissions"
             late_no_points: Check; "Late submissions are worth 0 points"
             tz: Timezone for datetimes
-
+            points: Check; "Include points row header"
         Returns:
             Bytes content of the result file. Usually will be used to save to a file.
         """
@@ -472,6 +473,7 @@ class EdStemAPI:
                 "ignore_late": ignore_late,
                 "late_no_points": late_no_points,
                 "tz": tz,
+                "points": points,
             },
         )
         return result
