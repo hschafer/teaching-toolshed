@@ -599,6 +599,10 @@ class EdStemAPI:
         url = api_url("attempts", attempt_id, "quiz_responses", question_id)
         return self._ed_get_request(url)["responses"]
 
+    def get_marking_status(self, lesson_id: int) -> dict[str, Any]:
+        url = api_url("lessons", lesson_id, "marking_status")
+        return self._ed_get_request(url)
+
     def mark(self, lesson_mark_id: int, items: dict[int, bool]):
         url = api_url("rubrics", "selected", lesson_mark_id)
         return self._ed_put_request(url, json={"items": items})
@@ -704,6 +708,10 @@ class EdStemAPI:
 
         result = self._ed_get_request(submission_path)["submissions"]
         return result
+
+    def get_all_attempts(self, lesson_id: int, user_id: int):
+        url = api_url("lessons", lesson_id, "attempts", user_id)
+        return self._ed_get_request(url)["attempts"]
 
     def delete_submission(self, sub_id):
         delete_path = api_url("challenges", "submissions", sub_id)
